@@ -1,0 +1,6 @@
+file_path: "storage.txt"
+server_port: 8089
+record_types:
+  - "password"
+  - "bankcard"
+  - "document"

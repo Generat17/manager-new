@@ -1,0 +1,1 @@
+{"alfa":{"type":"bankcard","password":"ExamplePassword","description":"ExampleDescription","additional":"ExampleAdditional","favorite":true},"test":{"type":"password","password":"ExamplePassword","description":"ExampleDescription","additional":"ExampleAdditional","favorite":true}}
