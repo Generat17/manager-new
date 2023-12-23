@@ -30,16 +30,16 @@ func (r *Repository) SetStorage(storage domain.Storage) {
 	r.mutex.RUnlock()
 }
 
-func (r *Repository) Get(name string) (domain.Element, bool) {
+func (r *Repository) Get(name string) (domain.Service, bool) {
 	r.mutex.RLock()
-	elem, ok := r.storage[name]
+	service, ok := r.storage[name]
 	r.mutex.RUnlock()
 
 	if !ok {
-		return domain.Element{}, false
+		return domain.Service{}, false
 	}
 
-	return elem, true
+	return service, true
 }
 
 func (r *Repository) GetAll() domain.Storage {
@@ -55,7 +55,7 @@ func (r *Repository) GetAll() domain.Storage {
 	return copyStorage
 }
 
-func (r *Repository) Update(name string, elem domain.Element) bool {
+func (r *Repository) UpdateLogin(name, login string, elem domain.Element) bool {
 	r.mutex.Lock()
 	_, ok := r.storage[name]
 	if !ok {
@@ -64,13 +64,20 @@ func (r *Repository) Update(name string, elem domain.Element) bool {
 		return false
 	}
 
-	r.storage[name] = elem
+	_, ok = r.storage[name].Elements[login]
+	if !ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	r.storage[name].Elements[login] = elem
 	r.mutex.Unlock()
 
 	return true
 }
 
-func (r *Repository) Append(name string, elem domain.Element) bool {
+func (r *Repository) AppendLogin(name, login string, elem domain.Element) bool {
 	r.mutex.Lock()
 
 	_, ok := r.storage[name]
@@ -80,13 +87,83 @@ func (r *Repository) Append(name string, elem domain.Element) bool {
 		return false
 	}
 
-	r.storage[name] = elem
+	_, ok = r.storage[name].Elements[login]
+	if ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	r.storage[name].Elements[login] = elem
 	r.mutex.Unlock()
 
 	return true
 }
 
-func (r *Repository) DeleteByName(name string) bool {
+func (r *Repository) DeleteLogin(name, login string) bool {
+	r.mutex.Lock()
+
+	_, ok := r.storage[name]
+	if !ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	_, ok = r.storage[name].Elements[login]
+	if !ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	delete(r.storage[name].Elements, login)
+	r.mutex.Unlock()
+
+	return true
+}
+
+func (r *Repository) UpdateService(name, serviceType string, favorite bool) bool {
+	r.mutex.Lock()
+	service, ok := r.storage[name]
+	if !ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	r.storage[name] = domain.Service{
+		Type:     serviceType,
+		Favorite: favorite,
+		Elements: service.Elements,
+	}
+
+	r.mutex.Unlock()
+
+	return true
+}
+
+func (r *Repository) AppendService(name, serviceType string, favorite bool) bool {
+	r.mutex.Lock()
+
+	_, ok := r.storage[name]
+	if ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	r.storage[name] = domain.Service{
+		Type:     serviceType,
+		Favorite: favorite,
+		Elements: nil,
+	}
+	r.mutex.Unlock()
+
+	return true
+}
+
+func (r *Repository) DeleteService(name string) bool {
 	r.mutex.Lock()
 
 	_, ok := r.storage[name]

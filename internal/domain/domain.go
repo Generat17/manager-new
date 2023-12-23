@@ -1,11 +1,23 @@
 package domain
 
-type Storage map[string]Element
+type Storage map[string]Service
+
+type Service struct {
+	Type     string             `json:"type"`
+	Favorite bool               `json:"favorite"`
+	Elements map[string]Element `json:"elements"`
+}
 
 type Element struct {
-	Type        string `json:"type"`
 	Password    string `json:"password"`
 	Description string `json:"description"`
 	Additional  string `json:"additional"`
-	Favorite    bool   `json:"favorite"`
+}
+
+type LoginBody struct {
+	Login   string  `json:"login"`
+	Element Element `json:"element"`
+}
+
+type ServiceBody struct {
 }

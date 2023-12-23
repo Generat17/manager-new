@@ -9,11 +9,16 @@ import (
 )
 
 type service interface {
+	WriteStorageFromFile() error
+	UpdateFile() error
 	GetAll() domain.Storage
-	DeleteByName(string) error
-	Append(string, domain.Element) error
-	UpdateByName(string, domain.Element) error
-	GetByType(string) (domain.Storage, error)
+	GetByType(recordType string) (domain.Storage, error)
+	AppendService(serviceName string, serviceType string, favorite bool) error
+	UpdateService(serviceName string, serviceType string, favorite bool) error
+	DeleteService(serviceName string, login string) error
+	AppendLogin(serviceName string, login string, elem domain.Element) error
+	UpdateLogin(serviceName string, login string, elem domain.Element) error
+	DeleteLogin(serviceName string, login string) error
 }
 
 type Handler struct {
@@ -31,9 +36,12 @@ func (h *Handler) InitRouter() http.Handler {
 
 	router.Handle("/get-by-type", h.getByType())
 	router.Handle("/get-all", h.getAll())
-	router.Handle("/add", h.add())
-	router.Handle("/update", h.update())
-	router.Handle("/delete", h.delete())
+	router.Handle("/add-login", h.addLogin())
+	router.Handle("/update-login", h.updateLogin())
+	router.Handle("/delete-login", h.deleteLogin())
+	router.Handle("/add-service", h.addService())
+	router.Handle("/update-service", h.updateService())
+	router.Handle("/delete-service", h.deleteService())
 
 	return router
 }
@@ -87,7 +95,7 @@ func (h *Handler) getAll() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) add() http.HandlerFunc {
+func (h *Handler) addLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			log.Print("failed to parse parameters")
@@ -96,7 +104,7 @@ func (h *Handler) add() http.HandlerFunc {
 			return
 		}
 
-		name := r.Form.Get("name")
+		serviceName := r.Form.Get("name")
 
 		body, err := ioutil.ReadAll(r.Body)
 		defer r.Body.Close()
@@ -106,15 +114,15 @@ func (h *Handler) add() http.HandlerFunc {
 			return
 		}
 
-		var elem domain.Element
-		err = json.Unmarshal(body, &elem)
+		var requestBody domain.LoginBody
+		err = json.Unmarshal(body, &requestBody)
 		if err != nil {
 			http.Error(w, "Error unmarshalling JSON", http.StatusBadRequest)
 
 			return
 		}
 
-		err = h.s.Append(name, elem)
+		err = h.s.AppendLogin(serviceName, requestBody.Login, requestBody.Element)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 
@@ -125,7 +133,108 @@ func (h *Handler) add() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) update() http.HandlerFunc {
+func (h *Handler) updateLogin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			log.Print("failed to parse parameters")
+			http.Error(w, "bad Request", http.StatusBadRequest)
+
+			return
+		}
+
+		serviceName := r.Form.Get("name")
+
+		body, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			http.Error(w, "error reading request body", http.StatusInternalServerError)
+
+			return
+		}
+
+		var requestBody domain.LoginBody
+		err = json.Unmarshal(body, &requestBody)
+		if err != nil {
+			http.Error(w, "Error unmarshalling JSON", http.StatusBadRequest)
+
+			return
+		}
+
+		err = h.s.UpdateLogin(serviceName, requestBody.Login, requestBody.Element)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (h *Handler) deleteLogin() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			log.Print("failed to parse parameters")
+			http.Error(w, "bad Request", http.StatusBadRequest)
+
+			return
+		}
+
+		serviceName := r.Form.Get("name")
+		login := r.Form.Get("login")
+
+		err := h.s.DeleteLogin(serviceName, login)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (h *Handler) addService() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			log.Print("failed to parse parameters")
+			http.Error(w, "bad Request", http.StatusBadRequest)
+
+			return
+		}
+
+		serviceName := r.Form.Get("name")
+		serviceType := r.Form.Get("type")
+		serviceFavorite := r.Form.Get("favorite")
+
+		body, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		if err != nil {
+			http.Error(w, "error reading request body", http.StatusInternalServerError)
+
+			return
+		}
+
+		var elem domain.Service
+		err = json.Unmarshal(body, &elem)
+		if err != nil {
+			http.Error(w, "Error unmarshalling JSON", http.StatusBadRequest)
+
+			return
+		}
+
+		err = h.s.AppendService(serviceName, serviceType, serviceFavorite)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (h *Handler) updateService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			log.Print("failed to parse parameters")
@@ -144,7 +253,7 @@ func (h *Handler) update() http.HandlerFunc {
 			return
 		}
 
-		var elem domain.Element
+		var elem domain.Service
 		err = json.Unmarshal(body, &elem)
 		if err != nil {
 			http.Error(w, "Error unmarshalling JSON", http.StatusBadRequest)
@@ -163,7 +272,7 @@ func (h *Handler) update() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) delete() http.HandlerFunc {
+func (h *Handler) deleteService() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			log.Print("failed to parse parameters")

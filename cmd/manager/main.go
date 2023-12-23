@@ -14,12 +14,8 @@ import (
 	"manager/pkg/config"
 )
 
-const (
-	configPath = "config.yaml"
-)
-
 func main() {
-	cfg, err := config.New(configPath)
+	cfg, err := config.New("config.yaml")
 	if err != nil {
 		log.Fatalf("failed to init config: %s", err.Error())
 	}

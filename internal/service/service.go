@@ -12,11 +12,14 @@ import (
 
 type repository interface {
 	SetStorage(domain.Storage)
-	Get(string) (domain.Element, bool)
+	Get(string) (domain.Service, bool)
 	GetAll() domain.Storage
-	Update(string, domain.Element) bool
-	Append(string, domain.Element) bool
-	DeleteByName(string) bool
+	UpdateLogin(string, string, domain.Element) bool
+	AppendLogin(string, string, domain.Element) bool
+	DeleteLogin(string, string) bool
+	UpdateService(string, string, bool) bool
+	AppendService(string, string, bool) bool
+	DeleteService(string) bool
 }
 
 type Service struct {
@@ -103,39 +106,18 @@ func (s *Service) GetByType(recordType string) (domain.Storage, error) {
 	return storageWithType, nil
 }
 
-func (s *Service) DeleteByName(name string) error {
-	validName, err := validationName(name)
+func (s *Service) AppendService(serviceName, serviceType string, favorite bool) error {
+	validServiceName, err := validationServiceName(serviceName)
 	if err != nil {
 		return fmt.Errorf("validation name error: %s", err.Error())
 	}
 
-	ok := s.repo.DeleteByName(validName)
-	if !ok {
-		log.Print("failed to update file: element not found")
-
-		return fmt.Errorf("element not found")
-	}
-
-	err = s.UpdateFile()
-	if err != nil {
-		log.Printf("failed to update file: %s", err.Error())
-	}
-
-	return nil
-}
-
-func (s *Service) Append(name string, elem domain.Element) error {
-	validName, err := validationName(name)
-	if err != nil {
-		return fmt.Errorf("validation name error: %s", err.Error())
-	}
-
-	validElem, err := validationElem(elem, s.recordTypes)
+	validServiceType, err := validationServiceType(serviceType, s.recordTypes)
 	if err != nil {
 		return fmt.Errorf("validation elem error: %s", err.Error())
 	}
 
-	ok := s.repo.Append(validName, validElem)
+	ok := s.repo.AppendService(validServiceName, validServiceType, favorite)
 	if !ok {
 		log.Print("failed to update file: element already exists")
 
@@ -152,18 +134,18 @@ func (s *Service) Append(name string, elem domain.Element) error {
 	return nil
 }
 
-func (s *Service) UpdateByName(name string, elem domain.Element) error {
-	validName, err := validationName(name)
+func (s *Service) UpdateService(serviceName, serviceType string, favorite bool) error {
+	validServiceName, err := validationServiceName(serviceName)
 	if err != nil {
 		return fmt.Errorf("validation name error: %s", err.Error())
 	}
 
-	validElem, err := validationElem(elem, s.recordTypes)
+	validServiceType, err := validationServiceType(serviceType, s.recordTypes)
 	if err != nil {
 		return fmt.Errorf("validation elem error: %s", err.Error())
 	}
 
-	ok := s.repo.Update(validName, validElem)
+	ok := s.repo.UpdateService(validServiceName, validServiceType, favorite)
 	if !ok {
 		log.Print("failed to update file: element not found")
 
@@ -178,7 +160,123 @@ func (s *Service) UpdateByName(name string, elem domain.Element) error {
 	return nil
 }
 
-func validationName(name string) (string, error) {
+func (s *Service) DeleteService(serviceName, login string) error {
+	validServiceName, err := validationServiceName(serviceName)
+	if err != nil {
+		return fmt.Errorf("validation name error: %s", err.Error())
+	}
+
+	validLogin, err := validationLogin(login)
+	if err != nil {
+		return fmt.Errorf("validation elem error: %s", err.Error())
+	}
+
+	ok := s.repo.DeleteLogin(validServiceName, validLogin)
+	if !ok {
+		log.Print("failed to update file: element not found")
+
+		return fmt.Errorf("element not found")
+	}
+
+	err = s.UpdateFile()
+	if err != nil {
+		log.Printf("failed to update file: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (s *Service) AppendLogin(serviceName, login string, elem domain.Element) error {
+	validServiceName, err := validationServiceName(serviceName)
+	if err != nil {
+		return fmt.Errorf("validation name error: %s", err.Error())
+	}
+
+	validElem, err := validationElem(elem)
+	if err != nil {
+		return fmt.Errorf("validation elem error: %s", err.Error())
+	}
+
+	validLogin, err := validationLogin(login)
+	if err != nil {
+		return fmt.Errorf("validation elem error: %s", err.Error())
+	}
+
+	ok := s.repo.AppendLogin(validServiceName, validLogin, validElem)
+	if !ok {
+		log.Print("failed to update file: element already exists")
+
+		return fmt.Errorf("element already exists")
+	}
+
+	err = s.UpdateFile()
+	if err != nil {
+		log.Printf("failed to update file: %s", err.Error())
+
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateLogin(serviceName, login string, elem domain.Element) error {
+	validServiceName, err := validationServiceName(serviceName)
+	if err != nil {
+		return fmt.Errorf("validation name error: %s", err.Error())
+	}
+
+	validElem, err := validationElem(elem)
+	if err != nil {
+		return fmt.Errorf("validation elem error: %s", err.Error())
+	}
+
+	validLogin, err := validationLogin(login)
+	if err != nil {
+		return fmt.Errorf("validation elem error: %s", err.Error())
+	}
+
+	ok := s.repo.UpdateLogin(validServiceName, validLogin, validElem)
+	if !ok {
+		log.Print("failed to update file: element not found")
+
+		return fmt.Errorf("element not found")
+	}
+
+	err = s.UpdateFile()
+	if err != nil {
+		log.Printf("failed to update file: %s", err.Error())
+	}
+
+	return nil
+}
+
+func (s *Service) DeleteLogin(serviceName, login string) error {
+	validServiceName, err := validationServiceName(serviceName)
+	if err != nil {
+		return fmt.Errorf("validation name error: %s", err.Error())
+	}
+
+	validLogin, err := validationLogin(login)
+	if err != nil {
+		return fmt.Errorf("validation elem error: %s", err.Error())
+	}
+
+	ok := s.repo.DeleteLogin(validServiceName, validLogin)
+	if !ok {
+		log.Print("failed to update file: element not found")
+
+		return fmt.Errorf("element not found")
+	}
+
+	err = s.UpdateFile()
+	if err != nil {
+		log.Printf("failed to update file: %s", err.Error())
+	}
+
+	return nil
+}
+
+func validationServiceName(name string) (string, error) {
 	if name == "" {
 		return "", fmt.Errorf("the name field cannot be empty")
 	}
@@ -200,12 +298,25 @@ func validationName(name string) (string, error) {
 	return name, nil
 }
 
-func validationElem(elem domain.Element, recordTypes []string) (domain.Element, error) {
-	if !contains(recordTypes, elem.Type) {
-		return domain.Element{}, fmt.Errorf("undefined record type")
+func validationServiceType(serviceType string, recordTypes []string) (string, error) {
+	if !contains(recordTypes, serviceType) {
+		return "", fmt.Errorf("undefined record type")
 	}
 
+	return serviceType, nil
+}
+
+func validationElem(elem domain.Element) (domain.Element, error) {
+
 	return elem, nil
+}
+
+func validationLogin(login string) (string, error) {
+	if login == "" {
+		return "", fmt.Errorf("login cannot be empty")
+	}
+
+	return login, nil
 }
 
 func contains(s []string, e string) bool {
