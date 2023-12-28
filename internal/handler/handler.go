@@ -6,6 +6,7 @@ import (
 	"log"
 	"manager/internal/domain"
 	"net/http"
+	"strconv"
 )
 
 type service interface {
@@ -13,9 +14,11 @@ type service interface {
 	UpdateFile() error
 	GetAll() domain.Storage
 	GetByType(recordType string) (domain.Storage, error)
+
 	AppendService(serviceName string, serviceType string, favorite bool) error
 	UpdateService(serviceName string, serviceType string, favorite bool) error
-	DeleteService(serviceName string, login string) error
+	DeleteService(serviceName string) error
+
 	AppendLogin(serviceName string, login string, elem domain.Element) error
 	UpdateLogin(serviceName string, login string, elem domain.Element) error
 	DeleteLogin(serviceName string, login string) error
@@ -36,9 +39,11 @@ func (h *Handler) InitRouter() http.Handler {
 
 	router.Handle("/get-by-type", h.getByType())
 	router.Handle("/get-all", h.getAll())
+
 	router.Handle("/add-login", h.addLogin())
 	router.Handle("/update-login", h.updateLogin())
 	router.Handle("/delete-login", h.deleteLogin())
+
 	router.Handle("/add-service", h.addService())
 	router.Handle("/update-service", h.updateService())
 	router.Handle("/delete-service", h.deleteService())
@@ -205,7 +210,14 @@ func (h *Handler) addService() http.HandlerFunc {
 
 		serviceName := r.Form.Get("name")
 		serviceType := r.Form.Get("type")
-		serviceFavorite := r.Form.Get("favorite")
+		serviceFavoriteStr := r.Form.Get("favorite")
+
+		serviceFavorite, err := strconv.ParseBool(serviceFavoriteStr)
+		if err != nil {
+			http.Error(w, "Error parsing favorite to bool", http.StatusBadRequest)
+
+			return
+		}
 
 		body, err := ioutil.ReadAll(r.Body)
 		defer r.Body.Close()
@@ -243,7 +255,16 @@ func (h *Handler) updateService() http.HandlerFunc {
 			return
 		}
 
-		name := r.Form.Get("name")
+		serviceName := r.Form.Get("name")
+		serviceType := r.Form.Get("type")
+		serviceFavoriteStr := r.Form.Get("favorite")
+
+		serviceFavorite, err := strconv.ParseBool(serviceFavoriteStr)
+		if err != nil {
+			http.Error(w, "Error parsing favorite to bool", http.StatusBadRequest)
+
+			return
+		}
 
 		body, err := ioutil.ReadAll(r.Body)
 		defer r.Body.Close()
@@ -261,7 +282,7 @@ func (h *Handler) updateService() http.HandlerFunc {
 			return
 		}
 
-		err = h.s.UpdateByName(name, elem)
+		err = h.s.UpdateService(serviceName, serviceType, serviceFavorite)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 
@@ -283,7 +304,7 @@ func (h *Handler) deleteService() http.HandlerFunc {
 
 		name := r.Form.Get("name")
 
-		err := h.s.DeleteByName(name)
+		err := h.s.DeleteService(name)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 

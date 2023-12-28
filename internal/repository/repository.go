@@ -55,27 +55,13 @@ func (r *Repository) GetAll() domain.Storage {
 	return copyStorage
 }
 
-func (r *Repository) UpdateLogin(name, login string, elem domain.Element) bool {
+func (r *Repository) Reset() {
 	r.mutex.Lock()
-	_, ok := r.storage[name]
-	if !ok {
-		r.mutex.Unlock()
-
-		return false
-	}
-
-	_, ok = r.storage[name].Elements[login]
-	if !ok {
-		r.mutex.Unlock()
-
-		return false
-	}
-
-	r.storage[name].Elements[login] = elem
+	r.storage = make(domain.Storage)
 	r.mutex.Unlock()
-
-	return true
 }
+
+// login
 
 func (r *Repository) AppendLogin(name, login string, elem domain.Element) bool {
 	r.mutex.Lock()
@@ -89,6 +75,28 @@ func (r *Repository) AppendLogin(name, login string, elem domain.Element) bool {
 
 	_, ok = r.storage[name].Elements[login]
 	if ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	r.storage[name].Elements[login] = elem
+	r.mutex.Unlock()
+
+	return true
+}
+
+func (r *Repository) UpdateLogin(name, login string, elem domain.Element) bool {
+	r.mutex.Lock()
+	_, ok := r.storage[name]
+	if !ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	_, ok = r.storage[name].Elements[login]
+	if !ok {
 		r.mutex.Unlock()
 
 		return false
@@ -123,25 +131,7 @@ func (r *Repository) DeleteLogin(name, login string) bool {
 	return true
 }
 
-func (r *Repository) UpdateService(name, serviceType string, favorite bool) bool {
-	r.mutex.Lock()
-	service, ok := r.storage[name]
-	if !ok {
-		r.mutex.Unlock()
-
-		return false
-	}
-
-	r.storage[name] = domain.Service{
-		Type:     serviceType,
-		Favorite: favorite,
-		Elements: service.Elements,
-	}
-
-	r.mutex.Unlock()
-
-	return true
-}
+// service
 
 func (r *Repository) AppendService(name, serviceType string, favorite bool) bool {
 	r.mutex.Lock()
@@ -163,6 +153,26 @@ func (r *Repository) AppendService(name, serviceType string, favorite bool) bool
 	return true
 }
 
+func (r *Repository) UpdateService(name, serviceType string, favorite bool) bool {
+	r.mutex.Lock()
+	service, ok := r.storage[name]
+	if !ok {
+		r.mutex.Unlock()
+
+		return false
+	}
+
+	r.storage[name] = domain.Service{
+		Type:     serviceType,
+		Favorite: favorite,
+		Elements: service.Elements,
+	}
+
+	r.mutex.Unlock()
+
+	return true
+}
+
 func (r *Repository) DeleteService(name string) bool {
 	r.mutex.Lock()
 
@@ -177,10 +187,4 @@ func (r *Repository) DeleteService(name string) bool {
 	r.mutex.Unlock()
 
 	return true
-}
-
-func (r *Repository) Reset() {
-	r.mutex.Lock()
-	r.storage = make(domain.Storage)
-	r.mutex.Unlock()
 }

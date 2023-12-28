@@ -106,6 +106,8 @@ func (s *Service) GetByType(recordType string) (domain.Storage, error) {
 	return storageWithType, nil
 }
 
+// service
+
 func (s *Service) AppendService(serviceName, serviceType string, favorite bool) error {
 	validServiceName, err := validationServiceName(serviceName)
 	if err != nil {
@@ -160,18 +162,13 @@ func (s *Service) UpdateService(serviceName, serviceType string, favorite bool) 
 	return nil
 }
 
-func (s *Service) DeleteService(serviceName, login string) error {
+func (s *Service) DeleteService(serviceName string) error {
 	validServiceName, err := validationServiceName(serviceName)
 	if err != nil {
 		return fmt.Errorf("validation name error: %s", err.Error())
 	}
 
-	validLogin, err := validationLogin(login)
-	if err != nil {
-		return fmt.Errorf("validation elem error: %s", err.Error())
-	}
-
-	ok := s.repo.DeleteLogin(validServiceName, validLogin)
+	ok := s.repo.DeleteService(validServiceName)
 	if !ok {
 		log.Print("failed to update file: element not found")
 
@@ -185,6 +182,8 @@ func (s *Service) DeleteService(serviceName, login string) error {
 
 	return nil
 }
+
+// login
 
 func (s *Service) AppendLogin(serviceName, login string, elem domain.Element) error {
 	validServiceName, err := validationServiceName(serviceName)
@@ -275,6 +274,8 @@ func (s *Service) DeleteLogin(serviceName, login string) error {
 
 	return nil
 }
+
+// other
 
 func validationServiceName(name string) (string, error) {
 	if name == "" {
